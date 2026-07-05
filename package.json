@@ -1,0 +1,24 @@
+{
+  "name": "@kabegame/types",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Kabegame V8 crawler plugin ambient runtime declarations",
+  "license": "GPL-3.0-only",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.d.ts"
+    }
+  },
+  "files": [
+    "index.d.ts",
+    "lib.*.d.ts"
+  ],
+  "engines": {
+    "kabegame": ">=4.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
