@@ -34,7 +34,6 @@ type KabegameJsonValue =
  *   name: "artist / character",
  *   url: postUrl,
  *   metadata: { schema: 1, title: "Post title" },
- *   metadata_version: 1,
  * });
  * ```
  */
@@ -45,28 +44,27 @@ interface KabegameDownloadImageOptions {
   metadata_id?: number | null;
   /** Source/post URL associated with the downloaded file. */
   url?: string | null;
-  /** JSON metadata to store with the image. Ignored when `metadata_id` is set. */
+  /**
+   * JSON metadata to store with the image. Ignored when `metadata_id` is set.
+   * The stored row is stamped with the running plugin's version by the app;
+   * keep a `schema` marker inside the metadata itself for your migration script.
+   */
   metadata?: KabegameJsonValue;
-  /** Version number for `metadata`, used by plugin metadata migrations. */
-  metadata_version?: number | null;
 }
 
 /**
  * Options for `Kabegame.createImageMetadata`.
  *
+ * The stored row is stamped with the running plugin's version by the app;
+ * keep a `schema` marker inside the metadata itself for your migration script.
+ *
  * @example
  * ```ts
- * const metadataId = Kabegame.createImageMetadata(
- *   { schema: 1, title: "Post title" },
- *   { version: 1 },
- * );
+ * const metadataId = Kabegame.createImageMetadata({ schema: 1, title: "Post title" });
  * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
  * ```
  */
-interface KabegameCreateImageMetadataOptions {
-  /** Plugin metadata schema version. */
-  version?: number | null;
-}
+interface KabegameCreateImageMetadataOptions {}
 
 /**
  * Host API exposed to Kabegame V8 crawler plugins.
@@ -234,7 +232,6 @@ interface KabegameHostApi {
    *   name: "sample",
    *   url: postUrl,
    *   metadata: { schema: 1, tags: ["sample"] },
-   *   metadata_version: 1,
    * });
    * ```
    */
@@ -248,10 +245,7 @@ interface KabegameHostApi {
    *
    * @example
    * ```ts
-   * const metadataId = Kabegame.createImageMetadata(
-   *   { schema: 1, title: "Post" },
-   *   { version: 1 },
-   * );
+   * const metadataId = Kabegame.createImageMetadata({ schema: 1, title: "Post" });
    * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
    * ```
    */
