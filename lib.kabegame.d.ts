@@ -66,6 +66,222 @@ interface KabegameDownloadImageOptions {
  */
 interface KabegameCreateImageMetadataOptions {}
 
+/** A path inside the current crawler task's private virtual file system. */
+type KabegameFsPath = string | URL;
+
+/** Seek origin accepted by `Kabegame.fs.open()` file handles: start, current, or end. */
+type KabegameFsSeekMode = 0 | 1 | 2;
+
+/** Options for opening a file through `Kabegame.fs` (async options are shared by both backends). */
+interface KabegameFsOpenOptions {
+  read?: boolean;
+  write?: boolean;
+  append?: boolean;
+  truncate?: boolean;
+  create?: boolean;
+  createNew?: boolean;
+  mode?: number;
+}
+
+/** Options for cancellable whole-file reads. */
+interface KabegameFsReadFileOptions {
+  signal?: AbortSignal;
+}
+
+/** Options for creating directories. */
+interface KabegameFsMkdirOptions {
+  recursive?: boolean;
+  mode?: number;
+}
+
+/** Options for creating a temporary file or directory under the task's `tmp` mount. */
+interface KabegameFsMakeTempOptions {
+  dir?: string;
+  prefix?: string;
+  suffix?: string;
+}
+
+/** Options for removing files or directories. */
+interface KabegameFsRemoveOptions {
+  recursive?: boolean;
+}
+
+/** Options for whole-file writes. */
+interface KabegameFsWriteFileOptions {
+  append?: boolean;
+  create?: boolean;
+  createNew?: boolean;
+  mode?: number;
+  signal?: AbortSignal;
+}
+
+/** Windows symbolic-link type hint. Symbolic links are rejected by the plugin VFS. */
+interface KabegameFsSymlinkOptions {
+  type: "file" | "dir" | "junction";
+}
+
+/** Raw terminal mode options exposed by the Deno file-handle surface. */
+interface KabegameFsSetRawOptions {
+  cbreak: boolean;
+}
+
+/** Directory entry returned by `Kabegame.fs.readDir()`. */
+interface KabegameFsDirEntry {
+  name: string;
+  isFile: boolean;
+  isDirectory: boolean;
+  isSymlink: boolean;
+}
+
+/** File metadata returned by `stat`, `lstat`, and file handles. */
+interface KabegameFsFileInfo {
+  isFile: boolean;
+  isDirectory: boolean;
+  isSymlink: boolean;
+  size: number;
+  mtime: Date | null;
+  atime: Date | null;
+  birthtime: Date | null;
+  ctime: Date | null;
+  dev: number;
+  ino: number | null;
+  mode: number | null;
+  nlink: number | null;
+  uid: number | null;
+  gid: number | null;
+  rdev: number | null;
+  blksize: number | null;
+  blocks: number | null;
+  isBlockDevice: boolean | null;
+  isCharDevice: boolean | null;
+  isFifo: boolean | null;
+  isSocket: boolean | null;
+}
+
+/**
+ * File handle returned by V8 `Kabegame.fs.open()` and `create()`.
+ *
+ * WebView handles expose only the async `read`, `write`, `seek`, `stat`, `truncate`, and `close`
+ * methods from this interface. WebView `close()` returns a Promise and should be awaited.
+ */
+interface KabegameFsFile {
+  readonly readable: ReadableStream<Uint8Array>;
+  readonly writable: WritableStream<Uint8Array>;
+  write(data: Uint8Array): Promise<number>;
+  writeSync(data: Uint8Array): number;
+  truncate(len?: number): Promise<void>;
+  truncateSync(len?: number): void;
+  read(buffer: Uint8Array): Promise<number | null>;
+  readSync(buffer: Uint8Array): number | null;
+  seek(offset: number | bigint, whence: KabegameFsSeekMode): Promise<number>;
+  seekSync(offset: number | bigint, whence: KabegameFsSeekMode): number;
+  stat(): Promise<KabegameFsFileInfo>;
+  statSync(): KabegameFsFileInfo;
+  sync(): Promise<void>;
+  syncSync(): void;
+  syncData(): Promise<void>;
+  syncDataSync(): void;
+  utime(atime: number | Date, mtime: number | Date): Promise<void>;
+  utimeSync(atime: number | Date, mtime: number | Date): void;
+  isTerminal(): boolean;
+  setRaw(mode: boolean, options?: KabegameFsSetRawOptions): void;
+  lock(exclusive?: boolean): Promise<void>;
+  lockSync(exclusive?: boolean): void;
+  tryLock(exclusive?: boolean): Promise<boolean>;
+  tryLockSync(exclusive?: boolean): boolean;
+  unlock(): Promise<void>;
+  unlockSync(): void;
+  close(): void;
+  [Symbol.dispose](): void;
+}
+
+/**
+ * Complete `deno_fs` API exposed only by the V8 crawler backend.
+ *
+ * The WebView backend is intentionally smaller and has no synchronous methods. It exposes the
+ * async path methods `readFile`, `readTextFile`, `writeFile`, `writeTextFile`, `mkdir`, `readDir`,
+ * `remove`, `rename`, `copyFile`, `stat`, `lstat`, `exists`, `truncate`, `size`, and `getRoot`, plus
+ * `open` / `create` handles with async `read`, `write`, `seek`, `stat`, `truncate`, and `close`.
+ */
+interface KabegameFsApi {
+  readonly FsFile: abstract new (...args: never[]) => KabegameFsFile;
+  getRoot(): string;
+  chdir(directory: KabegameFsPath): void;
+  cwd(): string;
+  open(path: KabegameFsPath, options?: KabegameFsOpenOptions): Promise<KabegameFsFile>;
+  openSync(path: KabegameFsPath, options?: KabegameFsOpenOptions): KabegameFsFile;
+  create(path: KabegameFsPath): Promise<KabegameFsFile>;
+  createSync(path: KabegameFsPath): KabegameFsFile;
+  link(oldpath: string, newpath: string): Promise<void>;
+  linkSync(oldpath: string, newpath: string): void;
+  mkdir(path: KabegameFsPath, options?: KabegameFsMkdirOptions): Promise<void>;
+  mkdirSync(path: KabegameFsPath, options?: KabegameFsMkdirOptions): void;
+  makeTempDir(options?: KabegameFsMakeTempOptions): Promise<string>;
+  makeTempDirSync(options?: KabegameFsMakeTempOptions): string;
+  makeTempFile(options?: KabegameFsMakeTempOptions): Promise<string>;
+  makeTempFileSync(options?: KabegameFsMakeTempOptions): string;
+  chmod(path: KabegameFsPath, mode: number): Promise<void>;
+  chmodSync(path: KabegameFsPath, mode: number): void;
+  chown(path: KabegameFsPath, uid: number | null, gid: number | null): Promise<void>;
+  chownSync(path: KabegameFsPath, uid: number | null, gid: number | null): void;
+  remove(path: KabegameFsPath, options?: KabegameFsRemoveOptions): Promise<void>;
+  removeSync(path: KabegameFsPath, options?: KabegameFsRemoveOptions): void;
+  rename(oldpath: KabegameFsPath, newpath: KabegameFsPath): Promise<void>;
+  renameSync(oldpath: KabegameFsPath, newpath: KabegameFsPath): void;
+  readTextFile(path: KabegameFsPath, options?: KabegameFsReadFileOptions): Promise<string>;
+  readTextFileSync(path: KabegameFsPath): string;
+  readFile(path: KabegameFsPath, options?: KabegameFsReadFileOptions): Promise<Uint8Array>;
+  readFileSync(path: KabegameFsPath): Uint8Array;
+  realPath(path: KabegameFsPath): Promise<string>;
+  realPathSync(path: KabegameFsPath): string;
+  readDir(path: KabegameFsPath): AsyncIterable<KabegameFsDirEntry>;
+  readDirSync(path: KabegameFsPath): IterableIterator<KabegameFsDirEntry>;
+  copyFile(fromPath: KabegameFsPath, toPath: KabegameFsPath): Promise<void>;
+  copyFileSync(fromPath: KabegameFsPath, toPath: KabegameFsPath): void;
+  readLink(path: KabegameFsPath): Promise<string>;
+  readLinkSync(path: KabegameFsPath): string;
+  lstat(path: KabegameFsPath): Promise<KabegameFsFileInfo>;
+  lstatSync(path: KabegameFsPath): KabegameFsFileInfo;
+  stat(path: KabegameFsPath): Promise<KabegameFsFileInfo>;
+  statSync(path: KabegameFsPath): KabegameFsFileInfo;
+  writeFile(
+    path: KabegameFsPath,
+    data: Uint8Array | ReadableStream<Uint8Array>,
+    options?: KabegameFsWriteFileOptions,
+  ): Promise<void>;
+  writeFileSync(
+    path: KabegameFsPath,
+    data: Uint8Array,
+    options?: KabegameFsWriteFileOptions,
+  ): void;
+  writeTextFile(
+    path: KabegameFsPath,
+    data: string | ReadableStream<string>,
+    options?: KabegameFsWriteFileOptions,
+  ): Promise<void>;
+  writeTextFileSync(
+    path: KabegameFsPath,
+    data: string,
+    options?: KabegameFsWriteFileOptions,
+  ): void;
+  truncate(path: string, len?: number): Promise<void>;
+  truncateSync(path: string, len?: number): void;
+  symlink(
+    oldpath: KabegameFsPath,
+    newpath: KabegameFsPath,
+    options?: KabegameFsSymlinkOptions,
+  ): Promise<void>;
+  symlinkSync(
+    oldpath: KabegameFsPath,
+    newpath: KabegameFsPath,
+    options?: KabegameFsSymlinkOptions,
+  ): void;
+  utime(path: KabegameFsPath, atime: number | Date, mtime: number | Date): Promise<void>;
+  utimeSync(path: KabegameFsPath, atime: number | Date, mtime: number | Date): void;
+  /** Always rejected because process-wide umask cannot be contained by the task VFS. */
+  umask(mask?: number): number;
+}
+
 /**
  * Host API exposed to Kabegame V8 crawler plugins.
  *
@@ -82,6 +298,15 @@ interface KabegameCreateImageMetadataOptions {}
  * ```
  */
 interface KabegameHostApi {
+  /**
+   * Private virtual filesystem for this V8 crawler task.
+   *
+   * Start paths with `Kabegame.fs.getRoot()`; the returned session handle expires when the task
+   * ends. Do not persist virtual paths. This declaration describes the V8 superset; WebView
+   * exposes only the smaller async path and file-handle subsets documented on `KabegameFsApi`.
+   */
+  readonly fs: KabegameFsApi;
+
   /**
    * Navigate to a URL and push the fetched page onto the crawler page stack.
    *
@@ -190,6 +415,21 @@ interface KabegameHostApi {
    * ```
    */
   setHeader(key: string, value: string): void;
+
+  /**
+   * Inject the persisted surf cookie for a host into this task's `Cookie` request header.
+   *
+   * When omitted, `host` is resolved from the plugin base URL. The cookie value is never
+   * exposed to plugin code; the return value only reports whether injection succeeded.
+   *
+   * @example
+   * ```ts
+   * if (!Kabegame.requireCookie()) {
+   *   Kabegame.warn("Please sign in to this site in Surf first");
+   * }
+   * ```
+   */
+  requireCookie(host?: string): boolean;
 
   /**
    * Remove a request header previously set through `setHeader`.
