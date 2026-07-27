@@ -282,6 +282,19 @@ interface KabegameFsApi {
   umask(mask?: number): number;
 }
 
+interface KabegameFfmpegProbeResult {
+  readonly isVideo: boolean;
+  readonly mimeType: string;
+  readonly width: number;
+  readonly height: number;
+  readonly browserSafe: boolean;
+}
+
+interface KabegameFfmpegApi {
+  muxStreams(inputs: string[], output: string): Promise<void>;
+  probe(path: string): Promise<KabegameFfmpegProbeResult | null>;
+}
+
 /**
  * Host API exposed to Kabegame V8 crawler plugins.
  *
@@ -306,6 +319,9 @@ interface KabegameHostApi {
    * exposes only the smaller async path and file-handle subsets documented on `KabegameFsApi`.
    */
   readonly fs: KabegameFsApi;
+
+  /** High-level media helpers operating only on paths owned by the current virtual filesystem. */
+  readonly ffmpeg: KabegameFfmpegApi;
 
   /**
    * Navigate to a URL and push the fetched page onto the crawler page stack.
