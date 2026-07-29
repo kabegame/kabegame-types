@@ -28,6 +28,9 @@ type KabegameJsonValue =
 /**
  * Options for `Kabegame.downloadImage`.
  *
+ * V8 and WebView accept the same option keys and use the same metadata priority:
+ * `metadata_id` reuses an existing row; `metadata` is inserted only when `metadata_id` is absent.
+ *
  * @example
  * ```ts
  * await Kabegame.downloadImage(imageUrl, {
@@ -40,7 +43,10 @@ type KabegameJsonValue =
 interface KabegameDownloadImageOptions {
   /** Optional display filename/title shown in Kabegame. */
   name?: string | null;
-  /** Existing metadata row id returned by `Kabegame.createImageMetadata`. */
+  /**
+   * Existing metadata row id returned by `Kabegame.createImageMetadata`.
+   * This key is named `metadata_id` in plugin source on both V8 and WebView.
+   */
   metadata_id?: number | null;
   /** Source/post URL associated with the downloaded file. */
   url?: string | null;
@@ -55,13 +61,18 @@ interface KabegameDownloadImageOptions {
 /**
  * Options for `Kabegame.createImageMetadata`.
  *
+ * The parameter shape is shared by the V8 and WebView backends. Options are currently unused;
+ * the legacy `version` key is silently ignored.
+ *
  * The stored row is stamped with the running plugin's version by the app;
  * keep a `schema` marker inside the metadata itself for your migration script.
  *
  * @example
  * ```ts
- * const metadataId = Kabegame.createImageMetadata({ schema: 1, title: "Post title" });
- * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
+ * const metadataId = Number(
+ *   await Kabegame.createImageMetadata({ schema: 1, title: "Post title" }),
+ * );
+ * await Kabegame.downloadImage(imageUrl, { metadata_id: metadataId });
  * ```
  */
 interface KabegameCreateImageMetadataOptions {}
@@ -296,7 +307,127 @@ interface KabegameFfmpegApi {
 }
 
 /**
- * Host API exposed to Kabegame V8 crawler plugins.
+ * Limits and filters applied by `Kabegame.archive` extraction methods.
+ *
+ * `include` and `exclude` contain globset patterns matched against normalized archive paths.
+ * Empty `include` accepts every regular file. `exclude` wins over `include`.
+ *
+ * @example
+ * ```ts
+ * const options: KabegameArchiveExtractOptions = {
+ *   include: ["**" + "/*.{jpg,jpeg,png,webp}"],
+ *   exclude: ["**" + "/__MACOSX/**"],
+ *   maxEntries: 500,
+ *   maxTotalBytes: 1024 * 1024 * 1024,
+ *   flatten: false,
+ *   overwrite: false,
+ * };
+ * ```
+ */
+interface KabegameArchiveExtractOptions {
+  include?: string[];
+  exclude?: string[];
+  /** Password used by ZIP and 7z archives. */
+  password?: string | null;
+  /** Maximum number of selected regular-file entries. Defaults to 10,000. */
+  maxEntries?: number;
+  /** Maximum total uncompressed bytes. Defaults to 2 GiB. */
+  maxTotalBytes?: number;
+  /** Drop directory components and extract every selected file directly into `destDir`. */
+  flatten?: boolean;
+  /** Replace existing destination files. Defaults to false. */
+  overwrite?: boolean;
+}
+
+interface KabegameArchiveExtractedEntry {
+  /** Extracted file path inside the current task's virtual filesystem. */
+  readonly path: string;
+  readonly size: number;
+}
+
+interface KabegameArchiveExtractResult {
+  readonly entries: readonly KabegameArchiveExtractedEntry[];
+  /** Number of regular-file entries rejected by include/exclude filters. */
+  readonly skipped: number;
+  readonly totalBytes: number;
+}
+
+interface KabegameArchiveApi {
+  /**
+   * Extract a ZIP archive stored in the current task's virtual filesystem.
+   *
+   * @example
+   * ```ts
+   * const root = Kabegame.fs.getRoot();
+   * const archivePath = `${root}/tmp/attachments.zip`;
+   * const outputDir = `${root}/tmp/attachments`;
+   * const result = await Kabegame.archive.zip(archivePath, outputDir, {
+   *   include: ["**" + "/*.{jpg,jpeg,png,webp}"],
+   *   maxEntries: 500,
+   *   maxTotalBytes: 1024 * 1024 * 1024,
+   * });
+   * for (const entry of result.entries) {
+   *   await Kabegame.downloadImage(entry.path);
+   * }
+   * ```
+   */
+  zip(
+    src: string,
+    destDir: string,
+    opts?: KabegameArchiveExtractOptions | null,
+  ): Promise<KabegameArchiveExtractResult>;
+
+  /**
+   * Extract a tar, tar.gz, or tar.bz2 archive. Compression is detected from magic bytes.
+   *
+   * @example
+   * ```ts
+   * const root = Kabegame.fs.getRoot();
+   * const result = await Kabegame.archive.tar(
+   *   `${root}/tmp/bundle.tar.gz`,
+   *   `${root}/tmp/bundle`,
+   *   { include: ["**" + "/*.png"] },
+   * );
+   * ```
+   */
+  tar(
+    src: string,
+    destDir: string,
+    opts?: KabegameArchiveExtractOptions | null,
+  ): Promise<KabegameArchiveExtractResult>;
+
+  /**
+   * Extract a 7z archive stored in the current task's virtual filesystem.
+   *
+   * @example
+   * ```ts
+   * const root = Kabegame.fs.getRoot();
+   * const result = await Kabegame.archive.sevenZip(
+   *   `${root}/tmp/protected.7z`,
+   *   `${root}/tmp/protected`,
+   *   { password: archivePassword, flatten: true },
+   * );
+   * ```
+   */
+  sevenZip(
+    src: string,
+    destDir: string,
+    opts?: KabegameArchiveExtractOptions | null,
+  ): Promise<KabegameArchiveExtractResult>;
+}
+
+interface KabegameFetchToFileResult {
+  readonly status: number;
+  readonly statusText: string;
+  readonly headers: readonly (readonly [string, string])[];
+  readonly url: string;
+  readonly bytesWritten: number;
+}
+
+/**
+ * Host API type surface for Kabegame crawler plugins.
+ *
+ * Availability and behavior can vary by backend except where a member is documented as shared.
  *
  * `Kabegame` is provided by the runtime. It is not imported from the SDK.
  *
@@ -322,6 +453,12 @@ interface KabegameHostApi {
 
   /** High-level media helpers operating only on paths owned by the current virtual filesystem. */
   readonly ffmpeg: KabegameFfmpegApi;
+
+  /**
+   * Host archive extractors shared by the V8 and WebView backends with the same signatures.
+   * All paths must belong to the current virtual filesystem.
+   */
+  readonly archive: KabegameArchiveApi;
 
   /**
    * Navigate to a URL and push the fetched page onto the crawler page stack.
@@ -480,6 +617,38 @@ interface KabegameHostApi {
   addProgress(percentage: number): number;
 
   /**
+   * Fetch a URL and stream its response body into a virtual-filesystem file.
+   *
+   * This method has the same signature and result shape in the V8 and WebView backends.
+   * The returned metadata does not contain a response body. The V8 backend uses its host HTTP
+   * client, while the WebView backend uses the current page's native `fetch` and browser session.
+   *
+   * @example
+   * ```ts
+   * const root = Kabegame.fs.getRoot();
+   * const archivePath = `${root}/tmp/attachment.zip`;
+   * const response = await Kabegame.fetchToFile(attachmentUrl, archivePath, {
+   *   headers: { Accept: "application/zip" },
+   * });
+   * if (response.status >= 200 && response.status < 300) {
+   *   const extracted = await Kabegame.archive.zip(
+   *     archivePath,
+   *     `${root}/tmp/attachment`,
+   *     { include: ["**" + "/*.{jpg,jpeg,png,webp}"] },
+   *   );
+   *   for (const entry of extracted.entries) {
+   *     await Kabegame.downloadImage(entry.path);
+   *   }
+   * }
+   * ```
+   */
+  fetchToFile(
+    url: string | URL,
+    destPath: string,
+    init?: RequestInit,
+  ): Promise<KabegameFetchToFileResult>;
+
+  /**
    * Queue an image download through Kabegame's downloader.
    *
    * @example
@@ -496,19 +665,25 @@ interface KabegameHostApi {
   /**
    * Insert plugin image metadata and return its row id.
    *
+   * Both backends accept the same `(value, opts?)` parameters. V8 returns a `bigint`
+   * synchronously; WebView returns a Promise resolving to a JSON `number`. Use
+   * `Number(await Kabegame.createImageMetadata(value))` in backend-agnostic plugin source.
+   *
    * Use this when multiple downloads should share one metadata row, or when
    * metadata creation needs to happen before resolving the image URL.
    *
    * @example
    * ```ts
-   * const metadataId = Kabegame.createImageMetadata({ schema: 1, title: "Post" });
-   * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
+   * const metadataId = Number(
+   *   await Kabegame.createImageMetadata({ schema: 1, title: "Post" }),
+   * );
+   * await Kabegame.downloadImage(imageUrl, { metadata_id: metadataId });
    * ```
    */
   createImageMetadata(
-    map: KabegameJsonValue,
+    value: KabegameJsonValue,
     opts?: KabegameCreateImageMetadataOptions | null,
-  ): bigint;
+  ): bigint | Promise<number>;
 }
 
 /**
