@@ -69,10 +69,8 @@ interface KabegameDownloadImageOptions {
  *
  * @example
  * ```ts
- * const metadataId = Number(
- *   await Kabegame.createImageMetadata({ schema: 1, title: "Post title" }),
- * );
- * await Kabegame.downloadImage(imageUrl, { metadata_id: metadataId });
+ * const metadataId = Kabegame.createImageMetadata({ schema: 1, title: "Post title" });
+ * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
  * ```
  */
 interface KabegameCreateImageMetadataOptions {}
@@ -665,25 +663,19 @@ interface KabegameHostApi {
   /**
    * Insert plugin image metadata and return its row id.
    *
-   * Both backends accept the same `(value, opts?)` parameters. V8 returns a `bigint`
-   * synchronously; WebView returns a Promise resolving to a JSON `number`. Use
-   * `Number(await Kabegame.createImageMetadata(value))` in backend-agnostic plugin source.
-   *
    * Use this when multiple downloads should share one metadata row, or when
    * metadata creation needs to happen before resolving the image URL.
    *
    * @example
    * ```ts
-   * const metadataId = Number(
-   *   await Kabegame.createImageMetadata({ schema: 1, title: "Post" }),
-   * );
-   * await Kabegame.downloadImage(imageUrl, { metadata_id: metadataId });
+   * const metadataId = Kabegame.createImageMetadata({ schema: 1, title: "Post" });
+   * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
    * ```
    */
   createImageMetadata(
     value: KabegameJsonValue,
     opts?: KabegameCreateImageMetadataOptions | null,
-  ): bigint | Promise<number>;
+  ): bigint;
 }
 
 /**
