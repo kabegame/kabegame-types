@@ -583,6 +583,20 @@ interface KabegameHostApi {
   requireCookie(host?: string): boolean;
 
   /**
+   * The default User-Agent of the desktop Surf browser (CEF), or `null` where Surf is not CEF (Android).
+   * Cookies such as Cloudflare `cf_clearance` are bound to the User-Agent that obtained them, so pair it
+   * with `requireCookie()`. The Chrome major version is maintained by the app and may lag behind.
+   *
+   * @example
+   * ```ts
+   * const ua = Kabegame.cefUserAgent?.();
+   * if (ua) Kabegame.setHeader("User-Agent", ua);
+   * Kabegame.requireCookie();
+   * ```
+   */
+  cefUserAgent(): string | null;
+
+  /**
    * Remove a request header previously set through `setHeader`.
    *
    * @example
