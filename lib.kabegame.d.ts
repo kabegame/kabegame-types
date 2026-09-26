@@ -54,6 +54,8 @@ interface KabegameDownloadImageOptions {
    * JSON metadata to store with the image. Ignored when `metadata_id` is set.
    * The stored row is stamped with the running plugin's version by the app;
    * keep a `schema` marker inside the metadata itself for your migration script.
+   * On a deduplication hit, replacing the existing image's metadata is controlled by
+   * the global `dedupUpdateMetadata` setting.
    */
   metadata?: KabegameJsonValue;
 }
