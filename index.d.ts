@@ -4,5 +4,6 @@
 /// <reference path="./lib.fetch.d.ts" />
 /// <reference path="./lib.dom.d.ts" />
 /// <reference path="./lib.kabegame.d.ts" />
+/// <reference path="./lib.migrate.d.ts" />
 
 export {};

@@ -26,6 +26,20 @@ type KabegameJsonValue =
   | { [key: string]: KabegameJsonValue };
 
 /**
+ * App-level image label, shown as a label album in Kabegame.
+ * - `key`: required, `[a-zA-Z0-9_\-() ]` (spaces not leading/trailing/consecutive), at most 64 bytes.
+ * - `category`: `/`-separated parent keys (same charset each); defaults to the plugin id.
+ * - `name`: display name, used only when the label is created; defaults to `key`.
+ *   Existing labels are never renamed by plugins.
+ * Invalid labels are skipped with a warning, never auto-corrected. Labels are only ever added.
+ */
+interface KabegameLabelInput {
+  key: string;
+  category?: string | null;
+  name?: string | null;
+}
+
+/**
  * Options for `Kabegame.downloadImage`.
  *
  * V8 and WebView accept the same option keys and use the same metadata priority:
@@ -58,6 +72,8 @@ interface KabegameDownloadImageOptions {
    * the global `dedupUpdateMetadata` setting.
    */
   metadata?: KabegameJsonValue;
+  /** Labels attached to the image; on a dedup hit, applied only if "update metadata on dedup" is on. */
+  labels?: KabegameLabelInput[] | null;
 }
 
 /**
