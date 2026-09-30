@@ -1,6 +1,6 @@
 {
   "name": "@kabegame/types",
-  "version": "4.4.1",
+  "version": "4.5.0",
   "type": "module",
   "description": "Kabegame V8 crawler plugin ambient runtime declarations",
   "license": "GPL-3.0-only",
