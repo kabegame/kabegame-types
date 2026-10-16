@@ -4,6 +4,16 @@
   "type": "module",
   "description": "Kabegame V8 crawler plugin ambient runtime declarations",
   "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kabegame/kabegame-types.git"
+  },
+  "homepage": "https://github.com/kabegame/kabegame-types#readme",
+  "bugs": "https://github.com/kabegame/kabegame-types/issues",
+  "keywords": ["kabegame", "crawler", "plugin", "types"],
+  "publishConfig": {
+    "access": "public"
+  },
   "types": "./index.d.ts",
   "exports": {
     ".": {
@@ -13,7 +23,8 @@
   },
   "files": [
     "index.d.ts",
-    "lib.*.d.ts"
+    "lib.*.d.ts",
+    "README.md"
   ],
   "engines": {
     "kabegame": ">=4.3.0"
