@@ -37,3 +37,7 @@ Do not add `"DOM"` to `lib`. The runtime is not a browser.
 - Kabegame: https://github.com/kabegame/kabegame
 - Plugin SDK: [@kabegame/plugin-sdk](https://www.npmjs.com/package/@kabegame/plugin-sdk)
 - Official plugins: https://github.com/kabegame/crawler-plugins
+
+## License
+
+MIT
