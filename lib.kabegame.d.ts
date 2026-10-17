@@ -8,6 +8,9 @@
  */
 type KabegameJsonPrimitive = string | number | boolean | null;
 
+/** Language codes supported by the Kabegame UI and crawler host. */
+type KabegameLang = "zh" | "en" | "ja" | "ko" | "zhtw";
+
 /**
  * JSON-compatible value that can cross the Kabegame host boundary.
  *
@@ -613,6 +616,19 @@ interface KabegameHostApi {
    * ```
    */
   cefUserAgent(): string | null;
+
+  /**
+   * Return the resolved language used by the Kabegame UI.
+   *
+   * Use optional chaining when the plugin also supports older app versions that do not expose
+   * this API.
+   *
+   * @example
+   * ```ts
+   * const lang = Kabegame.getLang?.() ?? "zh";
+   * ```
+   */
+  getLang(): KabegameLang;
 
   /**
    * Remove a request header previously set through `setHeader`.
