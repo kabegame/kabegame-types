@@ -5,3 +5,6 @@ type KabegameMigrateFn = (input: string) => string | Promise<string>;
 type KabegameProvideLabelsFn = (
   input: string,
 ) => KabegameLabelInput[] | Promise<KabegameLabelInput[]>;
+
+/** `export function provideSearchTextList(input)`: called with migrate's output when it succeeded. */
+type KabegameProvideSearchTextListFn = (input: string) => string[] | Promise<string[]>;

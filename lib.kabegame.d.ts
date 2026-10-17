@@ -75,6 +75,12 @@ interface KabegameDownloadImageOptions {
    * the global `dedupUpdateMetadata` setting.
    */
   metadata?: KabegameJsonValue;
+  /**
+   * Metadata search fragments used only when this call inserts `metadata`.
+   * Omit to use the app's default JSON expansion; an empty array disables metadata search.
+   * Ignored when `metadata_id` is set.
+   */
+  searchTexts?: string[] | null;
   /** Labels attached to the image; on a dedup hit, applied only if "update metadata on dedup" is on. */
   labels?: KabegameLabelInput[] | null;
 }
@@ -82,8 +88,8 @@ interface KabegameDownloadImageOptions {
 /**
  * Options for `Kabegame.createImageMetadata`.
  *
- * The parameter shape is shared by the V8 and WebView backends. Options are currently unused;
- * the legacy `version` key is silently ignored.
+ * The parameter shape is shared by the V8 and WebView backends. The legacy `version` key is
+ * silently ignored.
  *
  * The stored row is stamped with the running plugin's version by the app;
  * keep a `schema` marker inside the metadata itself for your migration script.
@@ -94,7 +100,13 @@ interface KabegameDownloadImageOptions {
  * await Kabegame.downloadImage(imageUrl, { metadata_id: Number(metadataId) });
  * ```
  */
-interface KabegameCreateImageMetadataOptions {}
+interface KabegameCreateImageMetadataOptions {
+  /**
+   * Metadata search fragments. Omit to use the app's default JSON expansion; an empty array
+   * disables metadata search for this row.
+   */
+  searchTexts?: string[] | null;
+}
 
 /** A path inside the current crawler task's private virtual file system. */
 type KabegameFsPath = string | URL;
