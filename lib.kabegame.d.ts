@@ -464,8 +464,8 @@ interface KabegameFetchToFileResult {
  *
  * @example
  * ```ts
- * export async function crawl(common: { base_url: string | null }) {
- *   await Kabegame.to(`${common.base_url}/posts`);
+ * export async function crawl(common: { baseUrl: string | null }) {
+ *   await Kabegame.to(`${common.baseUrl}/posts`);
  *   const doc = await Kabegame.currentDocument();
  *   const href = doc?.querySelector(".icon-download")?.getAttribute("href");
  *   if (href) await Kabegame.downloadImage(new URL(href, await Kabegame.currentUrl()).href);

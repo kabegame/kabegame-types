@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * const url = new URL("/posts", common.base_url ?? "https://example.test");
+ * const url = new URL("/posts", common.baseUrl ?? "https://example.test");
  * url.searchParams.set("page", "1");
  * await Kabegame.to(url.href);
  * ```
