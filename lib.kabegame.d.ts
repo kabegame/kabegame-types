@@ -455,6 +455,12 @@ interface KabegameFetchToFileResult {
   readonly bytesWritten: number;
 }
 
+/** Frozen host-provided values exposed to WebView crawler tasks. */
+interface KabegameWebViewCommon {
+  readonly baseUrl: string | null;
+  readonly isDryRun: boolean;
+}
+
 /**
  * Host API type surface for Kabegame crawler plugins.
  *
@@ -473,6 +479,12 @@ interface KabegameFetchToFileResult {
  * ```
  */
 interface KabegameHostApi {
+  /**
+   * Frozen common task parameters. WebView backend only; V8 plugins receive the same values as
+   * the first `crawl(common, custom)` argument.
+   */
+  readonly common?: KabegameWebViewCommon;
+
   /**
    * Private virtual filesystem for this V8 crawler task.
    *
