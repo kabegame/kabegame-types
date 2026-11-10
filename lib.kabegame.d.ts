@@ -83,6 +83,16 @@ interface KabegameDownloadImageOptions {
   searchTexts?: string[] | null;
   /** Labels attached to the image; on a dedup hit, applied only if "update metadata on dedup" is on. */
   labels?: KabegameLabelInput[] | null;
+  /**
+   * Move the source out of the task VFS instead of copying it. Only takes effect when `url` is a VFS
+   * path (a file or a Wallpaper Engine wallpaper directory); ignored for every other source. The
+   * source must be on a writable mount (`data` / `cache` / `tmp`, not `input`), must not be a mount
+   * root and must not contain symbolic links. After the call the path no longer exists: it is moved
+   * into the output directory, or deleted when the content is already in the library.
+   *
+   * @from 4.7.0
+   */
+  relocate?: boolean | null;
 }
 
 /**
@@ -722,6 +732,11 @@ interface KabegameHostApi {
   /**
    * Queue an image download through Kabegame's downloader.
    *
+   * `url` may also be a VFS path from `Kabegame.fs`. A VFS path can point at a Wallpaper Engine
+   * wallpaper directory (a folder with `project.json`); a directory must be passed with
+   * `relocate: true` and is imported as a single wallpaper. For such a directory the app stores
+   * `project.json` as the metadata itself, so `metadata` / `metadata_id` are ignored (desktop only).
+   *
    * @example
    * ```ts
    * await Kabegame.downloadImage(imageUrl, {
@@ -729,6 +744,12 @@ interface KabegameHostApi {
    *   url: postUrl,
    *   metadata: { schema: 1, tags: ["sample"] },
    * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * // Files were written to `${root}/tmp/wallpaper/...` with Kabegame.fetchToFile
+   * await Kabegame.downloadImage(`${Kabegame.fs.getRoot()}/tmp/wallpaper`, { relocate: true });
    * ```
    */
   downloadImage(url: string, opts?: KabegameDownloadImageOptions | null): Promise<void>;
